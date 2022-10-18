@@ -1,14 +1,18 @@
 import { useEffect, useState } from "react";
 import "./App.css";
+import { TwitterTweetEmbed } from "react-twitter-embed";
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 function App() {
   const DUMMY = [
-    "https://i.imgur.com/fBhFHy8.jpeg",
-    "https://i.imgur.com/JcOmINj.png",
+    "https://twitter.com/art_zilla/status/1476289078912077826",
+    "https://twitter.com/FlippersBC/status/1484806351910055937",
+    "https://twitter.com/YakuCorp/status/1577017662005456897",
   ];
   const [walletAddress, setWalletAddress] = useState(null);
   const [inputValue, setInputValue] = useState("");
-  const [jpegList, setJpegList] = useState([]);
+  const [tweetList, setTweetList] = useState([]);
 
   useEffect(() => {
     const onLoad = async () => {
@@ -20,10 +24,17 @@ function App() {
 
   useEffect(() => {
     if (walletAddress) {
-      // TODO fetch jpegs
-      setJpegList(DUMMY);
+      setTweetList(DUMMY);
     }
   }, [walletAddress]);
+
+  const getTweetIdFromUrl = (url) => {
+    if (url.includes("?")) {
+      url = url.split("?")[0];
+    }
+    const id = url.match(/(.*)status\/(.*)/)[2];
+    return id;
+  };
 
   const checkIfWalletIsConnected = async () => {
     if (window?.solana?.isPhantom) {
@@ -57,18 +68,24 @@ function App() {
       <form onSubmit={sendImage}>
         <input
           type="text"
-          placeholder="Enter a picture link!"
+          placeholder="Insert a tweet link!"
           value={inputValue}
           onChange={onInputChange}
         />
         <button type="submit" className="cta-button submit-gif-button">
           Submit
         </button>
+        <p className="info-text">
+          e.g. https://twitter.com/elonmusk/status/1580304724082843648
+        </p>
       </form>
-      <div className="gif-grid">
-        {jpegList.map((jpg) => (
-          <div className="gif-item" key={jpg}>
-            <img src={jpg} alt={jpg} />
+      <div className="tweet-grid">
+        {tweetList.map((tweet) => (
+          <div key={tweet}>
+            <TwitterTweetEmbed
+              onLoad={function noRefCheck() {}}
+              tweetId={getTweetIdFromUrl(tweet)}
+            />
           </div>
         ))}
       </div>
@@ -83,27 +100,35 @@ function App() {
 
   const sendImage = (e) => {
     e.preventDefault();
-    if (inputValue.length > 0) {
-      console.log("Img address:", inputValue);
-      setJpegList([...jpegList, inputValue]);
-      setInputValue("");
-    } else {
-      console.log("Img empty please enter valid address");
+
+    if (
+      !/.*twitter.*\/status\/.*/.test(inputValue) ||
+      inputValue.length === 0
+    ) {
+      toast.error("Please provide a valid Tweet Link!", {
+        position: "bottom-right",
+        theme: "colored",
+      });
+      return;
     }
+
+    setTweetList([...tweetList, inputValue]);
+    setInputValue("");
   };
 
   return (
     <div className="App">
       <div className={walletAddress ? "authed-container" : "container"}>
         <div className="header-container">
-          <p className="header">🏛 Solana Historic Events</p>
+          <p className="header">🏛 Solana Historic Tweets</p>
           <p className="sub-text">
-            A monument to preserve historical events in the Solana community.
+            A monument to preserve historic tweets in the Solana community.
           </p>
           {!walletAddress && renderNotConnectedContainer()}
           {walletAddress && renderConnectedContainer()}
         </div>
       </div>
+      <ToastContainer />
     </div>
   );
 }
